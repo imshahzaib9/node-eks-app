@@ -4,10 +4,10 @@ phases:
   install:
     commands:
       - echo Installing kubectl
-      - curl -o kubectl https://amazon-eks.s3.us-west-2.amazonaws.com/1.27.0/2023-11-14/bin/linux/amd64/kubectl
+      - curl -Lo kubectl https://dl.k8s.io/release/v1.27.4/bin/linux/amd64/kubectl
       - chmod +x kubectl
       - mv kubectl /usr/local/bin/
-      - kubectl version --client
+      - kubectl version --client --short
 
   pre_build:
     commands:
