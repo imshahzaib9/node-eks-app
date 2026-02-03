@@ -2,29 +2,35 @@ version: 0.2
 
 phases:
   install:
-    runtime-versions:
-      docker: 20
     commands:
       - echo Installing kubectl
-      - curl -LO "https://dl.k8s.io/release/v1.27.0/bin/linux/amd64/kubectl"
+      - curl -o kubectl https://amazon-eks.s3.us-west-2.amazonaws.com/1.27.0/2023-11-14/bin/linux/amd64/kubectl
       - chmod +x kubectl
       - mv kubectl /usr/local/bin/
       - kubectl version --client
+
   pre_build:
     commands:
-      - echo Logging in to ECR
+      - echo Logging in to Amazon ECR...
       - aws ecr get-login-password --region eu-west-2 | docker login --username AWS --password-stdin 127424156209.dkr.ecr.eu-west-2.amazonaws.com
+
   build:
     commands:
-      - echo Building Docker Image
+      - echo Building Docker image...
       - docker build -t node-eks-app .
       - docker tag node-eks-app:latest 127424156209.dkr.ecr.eu-west-2.amazonaws.com/node-eks-app:latest
+      - echo Pushing Docker image to ECR...
+      - docker push 127424156209.dkr.ecr.eu-west-2.amazonaws.com/node-eks-app:latest
+
   post_build:
     commands:
-      - echo Pushing Docker Image
-      - docker push 127424156209.dkr.ecr.eu-west-2.amazonaws.com/node-eks-app:latest
-      - echo Updating kubeconfig
+      - echo Updating kubeconfig...
       - aws eks update-kubeconfig --region eu-west-2 --name task-29-cluster
-      - echo Deploying to EKS
+      - echo Listing files in k8s folder for verification...
       - ls -la k8s/
+      - echo Applying Kubernetes manifests...
       - kubectl apply -f k8s/
+
+artifacts:
+  files:
+    - '**/*'
