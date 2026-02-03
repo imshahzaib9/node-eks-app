@@ -1,48 +1,30 @@
 version: 0.2
 
-env:
-  variables:
-    ECR_REPO: "127424156209.dkr.ecr.eu-west-2.amazonaws.com/node-eks-app"
-    CLUSTER_NAME: "task-29-cluster"
-    AWS_REGION: "eu-west-2"
-
 phases:
   install:
+    runtime-versions:
+      docker: 20
     commands:
-      - echo Installing dependencies...
-      - apt-get update -y
-      - apt-get install -y curl jq
       - echo Installing kubectl
-      - curl -LO "https://github.com/kubernetes/kubernetes/releases/download/v1.27.0/kubectl-linux-amd64"
+      - curl -LO "https://dl.k8s.io/release/v1.27.0/bin/linux/amd64/kubectl"
       - chmod +x kubectl
       - mv kubectl /usr/local/bin/
       - kubectl version --client
-      - echo Installing AWS CLI v2
-      - curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-      - unzip awscliv2.zip
-      - ./aws/install
-      - aws --version
-
   pre_build:
     commands:
-      - echo Logging in to Amazon ECR...
-      - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $ECR_REPO
-
+      - echo Logging in to ECR
+      - aws ecr get-login-password --region eu-west-2 | docker login --username AWS --password-stdin 127424156209.dkr.ecr.eu-west-2.amazonaws.com
   build:
     commands:
-      - echo Building Docker image...
+      - echo Building Docker Image
       - docker build -t node-eks-app .
-      - docker tag node-eks-app:latest $ECR_REPO:latest
-      - echo Pushing Docker image to ECR...
-      - docker push $ECR_REPO:latest
-
+      - docker tag node-eks-app:latest 127424156209.dkr.ecr.eu-west-2.amazonaws.com/node-eks-app:latest
   post_build:
     commands:
-      - echo Updating kubeconfig...
-      - aws eks update-kubeconfig --region $AWS_REGION --name $CLUSTER_NAME
-      - echo Applying Kubernetes manifests...
+      - echo Pushing Docker Image
+      - docker push 127424156209.dkr.ecr.eu-west-2.amazonaws.com/node-eks-app:latest
+      - echo Updating kubeconfig
+      - aws eks update-kubeconfig --region eu-west-2 --name task-29-cluster
+      - echo Deploying to EKS
+      - ls -la k8s/
       - kubectl apply -f k8s/
-
-artifacts:
-  files:
-    - '**/*'
