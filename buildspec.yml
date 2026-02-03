@@ -1,0 +1,28 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      docker: 20
+    commands:
+      - echo Installing kubectl
+      - curl -o kubectl https://s3.us-west-2.amazonaws.com/amazon-eks/1.27.0/2023-11-14/bin/linux/amd64/kubectl
+      - chmod +x kubectl
+      - mv kubectl /usr/local/bin/
+
+  pre_build:
+    commands:
+      - echo Logging in to ECR
+      - aws ecr get-login-password --region eu-west-2 | docker login --username AWS --password-stdin 127424156209.dkr.ecr.eu-west-2.amazonaws.com
+
+  build:
+    commands:
+      - docker build -t node-eks-app .
+      - docker tag node-eks-app:latest 127424156209.dkr.ecr.eu-west-2.amazonaws.com/node-eks-app:latest
+
+  post_build:
+    commands:
+      - docker push 127424156209.dkr.ecr.eu-west-2.amazonaws.com/node-eks-app:latest
+      - aws eks update-kubeconfig --region eu-west-2 --name task-29-cluster
+      - kubectl apply -f deployment.yaml
+
